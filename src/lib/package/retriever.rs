@@ -13,7 +13,7 @@ use std::{
     io::{BufReader, BufWriter},
     path::PathBuf,
 };
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
 pub struct Retriever {
     deps_cache: HashMap<Summary, Vec<Incompatibility<PackageId>>>,
@@ -154,6 +154,21 @@ impl Retriever {
 
         file.unlock()?;
 
+        // Merge in locally installed packages (e.g., Lamdera packages)
+        let local_versions = self.fetch_local_versions().unwrap_or_else(|e| {
+            debug!("Failed to scan local packages: {}", e);
+            HashMap::new()
+        });
+
+        for (pkg, vs) in local_versions {
+            let entry = versions.entry(pkg).or_insert_with(Vec::new);
+            for v in vs {
+                if !entry.contains(&v) {
+                    entry.push(v);
+                }
+            }
+        }
+
         let mut versions: HashMap<PackageId, Vec<Version>> = versions
             .iter()
             .map(|(k, v)| (k.clone().into(), v.clone()))
@@ -182,6 +197,86 @@ impl Retriever {
         cache_file: &File,
     ) -> Result<HashMap<package::Name, Vec<Version>>> {
         let versions: HashMap<package::Name, Vec<Version>> = bincode::deserialize_from(cache_file)?;
+
+        Ok(versions)
+    }
+
+    fn fetch_local_versions(&self) -> Result<HashMap<package::Name, Vec<Version>>> {
+        let mut versions: HashMap<package::Name, Vec<Version>> = HashMap::new();
+        let packages_path = Self::packages_path()?;
+
+        // Scan both 0.19.0 and 0.19.1 packages directories
+        for elm_version in &["0.19.0", "0.19.1"] {
+            let mut path = packages_path.clone();
+            path.push(elm_version);
+            path.push("packages");
+
+            if !path.exists() {
+                continue;
+            }
+
+            // Iterate through author directories
+            if let Ok(authors) = fs::read_dir(&path) {
+                for author_entry in authors.flatten() {
+                    let author_path = author_entry.path();
+                    if !author_path.is_dir() {
+                        continue;
+                    }
+                    let author_name = author_entry.file_name().to_string_lossy().to_string();
+
+                    // Iterate through project directories
+                    if let Ok(projects) = fs::read_dir(&author_path) {
+                        for project_entry in projects.flatten() {
+                            let project_path = project_entry.path();
+                            if !project_path.is_dir() {
+                                continue;
+                            }
+                            let project_name =
+                                project_entry.file_name().to_string_lossy().to_string();
+
+                            // Try to create a valid package name
+                            let pkg_name = match package::Name::new(&author_name, &project_name) {
+                                Ok(name) => name,
+                                Err(_) => continue,
+                            };
+
+                            // Iterate through version directories
+                            if let Ok(version_dirs) = fs::read_dir(&project_path) {
+                                for version_entry in version_dirs.flatten() {
+                                    let version_path = version_entry.path();
+                                    if !version_path.is_dir() {
+                                        continue;
+                                    }
+
+                                    // Check if elm.json exists in this version directory
+                                    let elm_json_path = version_path.join("elm.json");
+                                    if !elm_json_path.exists() {
+                                        continue;
+                                    }
+
+                                    let version_str =
+                                        version_entry.file_name().to_string_lossy().to_string();
+                                    if let Ok(version) = version_str.parse::<Version>() {
+                                        let entry =
+                                            versions.entry(pkg_name.clone()).or_insert_with(Vec::new);
+                                        if !entry.contains(&version) {
+                                            entry.push(version);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if !versions.is_empty() {
+            info!(
+                "Found {} locally installed packages",
+                versions.len()
+            );
+        }
 
         Ok(versions)
     }
