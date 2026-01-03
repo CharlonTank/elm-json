@@ -5,6 +5,11 @@ on:
     tags: [v*]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.3.0)'
+        required: true
 
 jobs:
   test:
