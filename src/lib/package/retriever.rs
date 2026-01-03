@@ -257,8 +257,9 @@ impl Retriever {
                                     let version_str =
                                         version_entry.file_name().to_string_lossy().to_string();
                                     if let Ok(version) = version_str.parse::<Version>() {
-                                        let entry =
-                                            versions.entry(pkg_name.clone()).or_insert_with(Vec::new);
+                                        let entry = versions
+                                            .entry(pkg_name.clone())
+                                            .or_insert_with(Vec::new);
                                         if !entry.contains(&version) {
                                             entry.push(version);
                                         }
@@ -272,10 +273,7 @@ impl Retriever {
         }
 
         if !versions.is_empty() {
-            info!(
-                "Found {} locally installed packages",
-                versions.len()
-            );
+            info!("Found {} locally installed packages", versions.len());
         }
 
         Ok(versions)
