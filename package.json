@@ -1,10 +1,10 @@
 {
-  "name": "elm-json",
-  "version": "0.2.13",
-  "description": "Deal with your elm.json",
-  "author": "Ilias Van Peer",
+  "name": "elm-json-lamdera",
+  "version": "0.3.0",
+  "description": "Deal with your elm.json - with Lamdera support",
+  "author": "Charles-André Sus",
   "license": "MIT",
-  "repository": "zwilias/elm-json",
+  "repository": "CharlonTank/elm-json",
   "preferGlobal": true,
   "main": "index.js",
   "scripts": {

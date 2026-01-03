@@ -1,7 +1,7 @@
 [package]
 name = "elm-json"
-version = "0.2.13"
-authors = ["ilias <mail@ilias.xyz>"]
+version = "0.3.0"
+authors = ["ilias <mail@ilias.xyz>", "Charles-André Sus"]
 edition = "2021"
 
 [dependencies]
