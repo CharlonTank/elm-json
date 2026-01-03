@@ -21,9 +21,9 @@ jobs:
           - ubuntu-latest
           - macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -55,19 +55,19 @@ jobs:
     env:
       RUSTFLAGS: "-C link-arg=-s"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: cargo install cross
       - run: cross build --release --target ${{ matrix.target }} --locked
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
         shell: bash
       - run: |
           7z a elm-json-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar elm-json
           7z a elm-json-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz elm-json-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar
         working-directory: target/${{ matrix.target }}/release
       - name: Store binary as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: elm-json-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/elm-json-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
@@ -101,19 +101,19 @@ jobs:
       - name: Install MUSL target
         if: ${{ matrix.name == 'Linux' }}
         run: sudo apt update && sudo apt install musl-tools
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - run: rustup target add ${{ matrix.target }}
       - run: cargo build --release --target ${{ matrix.target }} --locked
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
         shell: bash
       - run: |
           7z a elm-json-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar elm-json${{ matrix.ext }}
           7z a elm-json-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz elm-json-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar
         working-directory: target/${{ matrix.target }}/release
       - name: Store binary as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: elm-json-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/elm-json-${{ steps.get_version.outputs.VERSION }}-${{ matrix.target }}.tar.gz
@@ -124,10 +124,10 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
       - name: Display structure of downloaded files
         run: ls -R
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: elm-json-*/elm-json-*.tar.gz
